@@ -1,0 +1,3 @@
+WBP.init({
+	async: false
+});
