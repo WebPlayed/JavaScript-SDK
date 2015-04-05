@@ -5,13 +5,9 @@ WBP.prototype.namespace = '';
 WBP.prototype.apiKey = '';
 WBP.prototype.host = 'https://webplayed.com/';
 WBP.prototype.asyncRequests = true;
+WBP.prototype.onReady = null;
 
 //Scope
 WBP.prototype.helpers = {};
 WBP.prototype.modules = {};
-
-//Initialize WBP
-WBP.prototype.init = function(options) {
-	this.asyncRequests = options.async;
-
-};
+WBP.prototype.components = {};
