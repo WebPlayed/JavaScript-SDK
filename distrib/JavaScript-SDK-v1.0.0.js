@@ -284,11 +284,11 @@ WBP.prototype.api = function(path, method, params, callback) {
 
 //Initialize WBP
 WBP.prototype.init = function(options) {
-    this.asyncRequests = options.async;
-    this.namespace = options.namespace;
+    scope.asyncRequests = options.async;
+    scope.namespace = options.namespace;
 
     if (typeof options.ready !== 'undefined') {
-        this.onReady = options.ready;
+        scope.onReady = options.ready;
     }
 
     if(scope.modules.authenticate.isAuthenticated()){
