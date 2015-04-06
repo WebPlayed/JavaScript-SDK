@@ -8,7 +8,7 @@ WBP.prototype.components.clouddrive = {
 			formData.append('files[]', files[counter]);
 		}
 
-		var access_token = WBP.functions.cookie.get('access_token_' + WBP.appNamespace);
+		var access_token = scope.helpers.cookie.get('access_token_' + scope.namespace);
 
 		xmlhttp.onload = function() {
 			callback(xmlhttp.responseText);
@@ -17,5 +17,10 @@ WBP.prototype.components.clouddrive = {
 		xmlhttp.open(method, this.host + "api" + path + "?access_token=" +
 			access_token);
 		xmlhttp.send(formData);
+	},
+
+	openDialog: function(callback){
+		scope.driveCallback = callback;
+		window.open(scope.host + 'dialog/drive', 'Choose a file', 'height=400,width=600');
 	}
 };

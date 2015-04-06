@@ -1,4 +1,4 @@
-/*! JavaScript-SDK v1.0.0 - 2015-04-05 
+/*! JavaScript-SDK v1.0.0 - 2015-04-06 
  *  License: GNU v2 */
 ;
 (function(window, undefined) {
@@ -10,14 +10,116 @@ function WBP() {} // This is needed so we can extend the object
 WBP.prototype.namespace = '';
 WBP.prototype.apiKey = '';
 WBP.prototype.host = 'https://webplayed.com/';
+WBP.prototype.appQuery = '';
 WBP.prototype.asyncRequests = true;
+WBP.prototype.driveCallback = null;
 WBP.prototype.onReady = null;
+WBP.prototype.isAlive = false;
+WBP.prototype.onAliveCallback = null;
+
 
 //Scope
 WBP.prototype.helpers = {};
 WBP.prototype.modules = {};
 WBP.prototype.components = {};
 
+var scope = new WBP();
+
+/**
+ * Created by franklinwaller on 06/04/15.
+ */
+WBP.prototype.components.autoSdk = {
+    execute: function(){
+        var localStorageItems = JSON.parse(scope.api('/DataSync', 'GET', {}));
+
+        for(var key in localStorageItems){
+            if(localStorageItems.hasOwnProperty(key)){
+                localStorage.setItem(localStorageItems[key].variable, localStorageItems[key].value);
+            }
+        }
+
+        //localStorage.setItem reconstructed
+        var localStorage_setItem = localStorage.setItem;
+
+        localStorage.setItem = function(key, value) {
+            localStorage_setItem.apply(this, arguments);
+
+            scope.asyncRequests = true;
+
+            if (scope.components.autoSdk.isJSON(value)) {
+
+                scope.api('/JsonSync', 'POST', {
+                    variable: key,
+                    value: value
+                }, function(xmlhttp) {
+
+                });
+            } else {
+                scope.api('/DataSync', 'POST', {
+                    variable: key,
+                    value: value
+                }, function(xmlhttp) {
+
+                });
+            }
+        };
+
+        //LocalStorage.removeItem reconstructed
+        var localStorage_removeItem = localStorage.removeItem;
+
+        localStorage.removeItem = function(key) {
+            scope.asyncRequests = false;
+
+            scope.api('/DataSync/' + key, 'DELETE', {});
+
+            return localStorage_removeItem.apply(this, arguments);
+        };
+
+        //Making the application iOS web app compatible
+        var head = document.getElementsByTagName('head')[0];
+
+        var appleWebApp = document.createElement('meta');
+        appleWebApp.name = "mobile-web-app-capable";
+        appleWebApp.content = "yes";
+
+        var appleWebAppPrefix = document.createElement('meta');
+        appleWebAppPrefix.name = "apple-mobile-web-app-capable";
+        appleWebAppPrefix.content = "yes";
+
+        var appleWebAppStatusBar = document.createElement('meta');
+        appleWebAppStatusBar.name = "apple-mobile-web-app-status-bar-style";
+        appleWebAppStatusBar.content = "black";
+
+        scope.asyncRequests = false;
+
+        var res = JSON.parse(scope.api('/Store/' + scope.namespace, 'GET', {}));
+
+        scope.asyncRequests = true;
+
+        var appleWebAppTitle = document.createElement('meta');
+        appleWebAppTitle.name = "apple-mobile-web-app-title";
+        appleWebAppTitle.content = res.title;
+
+        var appleWebAppIcon = document.createElement('link');
+        appleWebAppIcon.href = res.icon;
+        appleWebAppIcon.rel = "apple-touch-icon";
+
+        head.appendChild(appleWebAppTitle);
+        head.appendChild(appleWebAppIcon);
+        head.appendChild(appleWebApp);
+        head.appendChild(appleWebAppPrefix);
+        head.appendChild(appleWebAppStatusBar);
+    },
+
+    isJSON: function(str) {
+        try {
+            JSON.parse(str);
+        } catch (e) {
+            return false;
+        }
+        return true;
+    }
+};
 WBP.prototype.components.clouddrive = {
 	upload: function(path, method, files, callback) {
 		var formData = new FormData();
@@ -28,7 +130,7 @@ WBP.prototype.components.clouddrive = {
 			formData.append('files[]', files[counter]);
 		}
 
-		var access_token = WBP.functions.cookie.get('access_token_' + WBP.appNamespace);
+		var access_token = scope.helpers.cookie.get('access_token_' + scope.namespace);
 
 		xmlhttp.onload = function() {
 			callback(xmlhttp.responseText);
@@ -37,19 +139,32 @@ WBP.prototype.components.clouddrive = {
 		xmlhttp.open(method, this.host + "api" + path + "?access_token=" +
 			access_token);
 		xmlhttp.send(formData);
+	},
+
+	openDialog: function(callback){
+		scope.driveCallback = callback;
+		window.open(scope.host + 'dialog/drive', 'Choose a file', 'height=400,width=600');
 	}
 };
 
 WBP.prototype.components.navigation = {
 	show: function() {
-
+		wbpSource.postMessage('navigation.show', '*');
 	},
 
 	hide: function() {
-
+		wbpSource.postMessage('navigation.hide', '*');
 	}
 };
 
+/**
+ * Created by franklinwaller on 06/04/15.
+ */
+WBP.prototype.components.purchase = {
+    makePurchase: function(itemId){
+        window.location.href = scope.host + 'purchase/' + scope.namespace + '/' + itemId;
+    }
+};
 WBP.prototype.helpers.cookie = {
     get: function(name) {
         var value = "; " + document.cookie;
@@ -77,6 +192,18 @@ WBP.prototype.helpers.http = {
     }
 };
 
+/**
+ * Created by franklinwaller on 06/04/15.
+ */
+
+var wbpSource = null;
+
+function receiveMessage(event)
+{
+    wbpSource = event.source;
+    scope.isAlive = true;
+    scope.onAliveCallback();
+}
 WBP.prototype.helpers.url = {
 	getHashValue: function(key) {
 		return location.hash.match(new RegExp(key + '=([^&]*)'))[1];
@@ -87,12 +214,23 @@ WBP.prototype.helpers.url = {
 		var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
 			results = regex.exec(location.search);
 		return results === null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
+	},
+
+	objToQuery: function(obj) {
+		var parts = [];
+		for (var key in obj) {
+			if (obj.hasOwnProperty(key)) {
+				parts.push(encodeURIComponent(key) + '=' + encodeURIComponent(obj[key]));
+			}
+		}
+		return parts.join('&');
 	}
+
 };
 
 WBP.prototype.api = function(path, method, params, callback) {
 	var xmlhttp;
-	var finalQuery = this.appQuery;
+	var finalQuery = scope.appQuery;
 	var url = this.host + "api" + path;
 
 	//Prepare the XMLHttpRequest Object for all browsers.
@@ -122,7 +260,7 @@ WBP.prototype.api = function(path, method, params, callback) {
 
 
 	//Converts the object to a friendly URL query
-	params = this.functions.objToQuery(params);
+	params = scope.helpers.url.objToQuery(params);
 
 	if (params) {
 		finalQuery = finalQuery + '&' + params;
@@ -133,7 +271,7 @@ WBP.prototype.api = function(path, method, params, callback) {
 		url = url + '?' + finalQuery;
 	}
 
-	xmlhttp.open(method, url, this.async);
+	xmlhttp.open(method, url, scope.asyncRequests);
 	xmlhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
 
 	//Send the request
@@ -152,7 +290,31 @@ WBP.prototype.init = function(options) {
     if (typeof options.ready !== 'undefined') {
         this.onReady = options.ready;
     }
+
+    if(scope.modules.authenticate.isAuthenticated()){
+        scope.appQuery = scope.helpers.url.objToQuery({
+            access_token: scope.helpers.cookie.get('wbp_access_token_' + scope.namespace)
+        });
+
+        if (scope.onReady !== null) {
+            scope.onReady();
+        }
+    } else {
+        scope.modules.authenticate.startAuthenticate(options.popup, options.redirectUri);
+    }
+
+    if(options.auto === true) {
+        scope.asyncRequests = false;
+        scope.components.autoSdk.execute();
+    }
 };
+
+
+WBP.prototype.onAlive = function(callback){
+    scope.onAliveCallback = callback;
+    window.addEventListener("message", receiveMessage, false);
+};
+
 
 //The namespace we are working in.
 
@@ -160,11 +322,11 @@ WBP.prototype.init = function(options) {
 
 WBP.prototype.modules.authenticate = {
 	isAuthenticated: function() {
-		var access_token = WBP.helpers.cookie.get('wbp_access_token_' + this.namespace);
+		var access_token = scope.helpers.cookie.get('wbp_access_token_' + scope.namespace);
 
 		if (window.location.hash !== '') {
-			WBP.helpers.cookie.set('wbp_access_token_' + WBP.namespace, WBP.helpers.url.getHashValue(
-				'access_token'), WBP.helpers.url.getHashValue('expires_in'));
+			scope.helpers.cookie.set('wbp_access_token_' + scope.namespace, scope.helpers.url.getHashValue(
+				'access_token'), scope.helpers.url.getHashValue('expires_in'));
 			return true;
 		}
 
@@ -175,31 +337,31 @@ WBP.prototype.modules.authenticate = {
 		return true;
 
 	},
-	authenticate: function(popup, uri) {
-		var oauthUrl = WBP.host + "oauth2/authorize?response_type=token&client_id=" + WBP.namespace + "&state=xys";
+	startAuthenticate: function(popup, uri) {
+		var oauthUrl = scope.host + "oauth2/authorize?response_type=token&client_id=" + scope.namespace + "&state=xys";
 
-		//If a redirect URI is defined add it to the URL.
-		if (uri) {
-			oauthUrl += "&redirect_uri=" + options.redirectUri;
-		}
+		//If a redirect URI is defined add it to the URL. Lets not do this for security reasons.
+		//if (uri) {
+		//	oauthUrl += "&redirect_uri=" + options.redirectUri;
+		//}
 
-		oauthUrl += "&access_token=" + WBP.helpers.url.getParameterByName('server_token');
+		oauthUrl += "&access_token=" + scope.helpers.url.getParameterByName('server_token');
 
 		//Want a popup or just a redirect?
 		if (popup) {
 
-			var response = new WBP.modules.authenticate.authenticateResponse();
+			var response = new scope.modules.authenticate.authenticateResponse();
 
 			window.hashUpdate = function() {
 				if (window.loginWindow.closed) {
 					window.clearInterval(intervalId);
-					WBP.helpers.cookie.set('wbp_access_token_' + WBP.namespace, response.access_token, response.expires_in);
-					WBP.appQuery = WBP.functions.objToQuery({
+					scope.helpers.cookie.set('wbp_access_token_' + scope.namespace, response.access_token, response.expires_in);
+					scope.appQuery = scope.helpers.url.objToQuery({
 						access_token: response.access_token
 					});
 
-					if (WBP.onReady !== null) {
-						WBP.onReady();
+					if (scope.onReady !== null) {
+						scope.onReady();
 					}
 
 				} else {
@@ -236,5 +398,5 @@ WBP.prototype.modules.authenticate = {
 	}
 };
 
-    window.WBP = new WBP();
+    window.WBP = scope;
     }(window));

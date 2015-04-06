@@ -4,11 +4,11 @@
 
 WBP.prototype.modules.authenticate = {
 	isAuthenticated: function() {
-		var access_token = WBP.helpers.cookie.get('wbp_access_token_' + this.namespace);
+		var access_token = scope.helpers.cookie.get('wbp_access_token_' + scope.namespace);
 
 		if (window.location.hash !== '') {
-			WBP.helpers.cookie.set('wbp_access_token_' + WBP.namespace, WBP.helpers.url.getHashValue(
-				'access_token'), WBP.helpers.url.getHashValue('expires_in'));
+			scope.helpers.cookie.set('wbp_access_token_' + scope.namespace, scope.helpers.url.getHashValue(
+				'access_token'), scope.helpers.url.getHashValue('expires_in'));
 			return true;
 		}
 
@@ -19,31 +19,31 @@ WBP.prototype.modules.authenticate = {
 		return true;
 
 	},
-	authenticate: function(popup, uri) {
-		var oauthUrl = WBP.host + "oauth2/authorize?response_type=token&client_id=" + WBP.namespace + "&state=xys";
+	startAuthenticate: function(popup, uri) {
+		var oauthUrl = scope.host + "oauth2/authorize?response_type=token&client_id=" + scope.namespace + "&state=xys";
 
-		//If a redirect URI is defined add it to the URL.
-		if (uri) {
-			oauthUrl += "&redirect_uri=" + options.redirectUri;
-		}
+		//If a redirect URI is defined add it to the URL. Lets not do this for security reasons.
+		//if (uri) {
+		//	oauthUrl += "&redirect_uri=" + options.redirectUri;
+		//}
 
-		oauthUrl += "&access_token=" + WBP.helpers.url.getParameterByName('server_token');
+		oauthUrl += "&access_token=" + scope.helpers.url.getParameterByName('server_token');
 
 		//Want a popup or just a redirect?
 		if (popup) {
 
-			var response = new WBP.modules.authenticate.authenticateResponse();
+			var response = new scope.modules.authenticate.authenticateResponse();
 
 			window.hashUpdate = function() {
 				if (window.loginWindow.closed) {
 					window.clearInterval(intervalId);
-					WBP.helpers.cookie.set('wbp_access_token_' + WBP.namespace, response.access_token, response.expires_in);
-					WBP.appQuery = WBP.functions.objToQuery({
+					scope.helpers.cookie.set('wbp_access_token_' + scope.namespace, response.access_token, response.expires_in);
+					scope.appQuery = scope.helpers.url.objToQuery({
 						access_token: response.access_token
 					});
 
-					if (WBP.onReady !== null) {
-						WBP.onReady();
+					if (scope.onReady !== null) {
+						scope.onReady();
 					}
 
 				} else {

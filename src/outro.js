@@ -1,2 +1,2 @@
-    window.WBP = new WBP();
+    window.WBP = scope;
     }(window));

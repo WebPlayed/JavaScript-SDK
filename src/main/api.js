@@ -1,6 +1,6 @@
 WBP.prototype.api = function(path, method, params, callback) {
 	var xmlhttp;
-	var finalQuery = this.appQuery;
+	var finalQuery = scope.appQuery;
 	var url = this.host + "api" + path;
 
 	//Prepare the XMLHttpRequest Object for all browsers.
@@ -30,7 +30,7 @@ WBP.prototype.api = function(path, method, params, callback) {
 
 
 	//Converts the object to a friendly URL query
-	params = this.functions.objToQuery(params);
+	params = scope.helpers.url.objToQuery(params);
 
 	if (params) {
 		finalQuery = finalQuery + '&' + params;
@@ -41,7 +41,7 @@ WBP.prototype.api = function(path, method, params, callback) {
 		url = url + '?' + finalQuery;
 	}
 
-	xmlhttp.open(method, url, this.async);
+	xmlhttp.open(method, url, scope.asyncRequests);
 	xmlhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
 
 	//Send the request
