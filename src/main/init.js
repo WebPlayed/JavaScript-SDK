@@ -1,6 +1,9 @@
 //Initialize WBP
 WBP.prototype.init = function(options) {
-    scope.asyncRequests = options.async;
+    if(options.async) {
+        scope.asyncRequests = options.async;
+    }
+
     scope.namespace = options.namespace;
 
     if (typeof options.ready !== 'undefined') {

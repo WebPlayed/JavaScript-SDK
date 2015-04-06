@@ -4,7 +4,7 @@ module.exports = function(grunt) {
         '<%= grunt.template.today("yyyy-mm-dd") %> \n' +
         ' *  License: <%= pkg.license %> */\n';
 
-    var latest = '<%= pkg.name %>';
+    var latest = 'sdk';
     var name = '<%= pkg.name %>-v<%= pkg.version%>';
 
     devRelease = 'distrib/' + name + '.js';

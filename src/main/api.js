@@ -3,6 +3,7 @@ WBP.prototype.api = function(path, method, params, callback) {
 	var finalQuery = scope.appQuery;
 	var url = this.host + "api" + path;
 
+
 	//Prepare the XMLHttpRequest Object for all browsers.
 	if (window.XMLHttpRequest) {
 		// code for IE7+, Firefox, Chrome, Opera, Safari
@@ -13,17 +14,10 @@ WBP.prototype.api = function(path, method, params, callback) {
 	}
 
 	//The state of the object changed
-	if (this.async === true) {
+	if (scope.asyncRequests === true) {
 		xmlhttp.onreadystatechange = function() {
 			if (xmlhttp.readyState === 4) {
-				if (xmlhttp.status === 200) {
-					//Everything is OK. Return the text.
-					callback(xmlhttp);
-				} else if (xmlhttp.status === 400) {
-					callback(false);
-				} else {
-					callback(false);
-				}
+				callback(xmlhttp);
 			}
 		};
 	}
@@ -47,7 +41,7 @@ WBP.prototype.api = function(path, method, params, callback) {
 	//Send the request
 	xmlhttp.send(finalQuery);
 
-	if (this.async === false) {
+	if (scope.asyncRequests === false) {
 		return xmlhttp.responseText;
 	}
 };
