@@ -3,7 +3,7 @@
  */
 WBP.prototype.components.autoSdk = {
     execute: function(){
-        var localStorageItems = JSON.parse(scope.api('/DataSync', 'GET', {}));
+        var localStorageItems = JSON.parse(scope.api('/DataSync', 'GET', {})).Result;
 
         for(var key in localStorageItems){
             if(localStorageItems.hasOwnProperty(key)){

@@ -1,4 +1,4 @@
-/*! JavaScript-SDK v1.0.0 - 2015-04-06 
+/*! JavaScript-SDK v1.0.0 - 2015-04-25 
  *  License: GNU v2 */
 ;
 (function(window, undefined) {
@@ -30,7 +30,7 @@ var scope = new WBP();
  */
 WBP.prototype.components.autoSdk = {
     execute: function(){
-        var localStorageItems = JSON.parse(scope.api('/DataSync', 'GET', {}));
+        var localStorageItems = JSON.parse(scope.api('/DataSync', 'GET', {})).Result;
 
         for(var key in localStorageItems){
             if(localStorageItems.hasOwnProperty(key)){
@@ -120,7 +120,21 @@ WBP.prototype.components.autoSdk = {
         return true;
     }
 };
+/**
+ * @namespace WBP.components
+ * @class clouddrive
+ * @type {{upload: Function, openDialog: Function}}
+ */
 WBP.prototype.components.clouddrive = {
+
+	/**
+	 * Uploads a file to the users CloudDrive
+	 *
+	 * @param {string} path
+	 * @param {string} method
+	 * @param {Array} files
+	 * @param {Function(XMLHttpResponse)} callback
+	 */
 	upload: function(path, method, files, callback) {
 		var formData = new FormData();
 		var xmlhttp = new XMLHttpRequest();
@@ -141,6 +155,11 @@ WBP.prototype.components.clouddrive = {
 		xmlhttp.send(formData);
 	},
 
+	/**
+	 * Opens a CloudDrive dialog where the user can select a file and pass this to your app
+	 *
+	 * @param {Function(url)} callback
+	 */
 	openDialog: function(callback){
 		scope.driveCallback = callback;
 		window.open(scope.host + 'dialog/drive', 'Choose a file', 'height=400,width=600');
@@ -372,85 +391,94 @@ WBP.prototype.onAlive = function(callback){
 
 
 //The namespace we are working in.
-
-
-
 WBP.prototype.modules.authenticate = {
-	isAuthenticated: function() {
-		var access_token = scope.helpers.cookie.get('wbp_access_token_' + scope.namespace);
+    isAuthenticated: function() {
+        var access_token = scope.helpers.cookie.get('wbp_access_token_' +
+            scope.namespace);
 
-		if (window.location.hash !== '') {
-			scope.helpers.cookie.set('wbp_access_token_' + scope.namespace, scope.helpers.url.getHashValue(
-				'access_token'), scope.helpers.url.getHashValue('expires_in'));
-			return true;
-		}
+        if (window.location.hash !== '') {
+            scope.helpers.cookie.set('wbp_access_token_' + scope.namespace,
+                scope.helpers.url.getHashValue(
+                    'access_token'), scope.helpers.url.getHashValue(
+                    'expires_in'));
+            return true;
+        }
 
-		if (access_token === null || typeof access_token === 'undefined') {
-			return false;
-		}
+        if (access_token === null || typeof access_token ===
+            'undefined') {
+            return false;
+        }
 
-		return true;
+        return true;
 
-	},
-	startAuthenticate: function(popup, uri) {
-		var oauthUrl = scope.host + "oauth2/authorize?response_type=token&client_id=" + scope.namespace + "&state=xys";
+    },
+    startAuthenticate: function(popup, uri) {
+        var oauthUrl = scope.host +
+            "oauth2/authorize?response_type=token&client_id=" + scope.namespace +
+            "&state=xys";
 
-		//If a redirect URI is defined add it to the URL. Lets not do this for security reasons.
-		//if (uri) {
-		//	oauthUrl += "&redirect_uri=" + options.redirectUri;
-		//}
+        //If a redirect URI is defined add it to the URL. Lets not do this for security reasons.
+        //if (uri) {
+        //	oauthUrl += "&redirect_uri=" + options.redirectUri;
+        //}
 
-		oauthUrl += "&access_token=" + scope.helpers.url.getParameterByName('server_token');
+        oauthUrl += "&access_token=" + scope.helpers.url.getParameterByName(
+            'server_token');
 
-		//Want a popup or just a redirect?
-		if (popup) {
+        //Want a popup or just a redirect?
+        if (popup) {
 
-			var response = new scope.modules.authenticate.authenticateResponse();
+            var response = new scope.modules.authenticate.authenticateResponse();
 
-			window.hashUpdate = function() {
-				if (window.loginWindow.closed) {
-					window.clearInterval(intervalId);
-					scope.helpers.cookie.set('wbp_access_token_' + scope.namespace, response.access_token, response.expires_in);
-					scope.appQuery = scope.helpers.url.objToQuery({
-						access_token: response.access_token
-					});
+            window.hashUpdate = function() {
+                if (window.loginWindow.closed) {
+                    window.clearInterval(intervalId);
+                    scope.helpers.cookie.set('wbp_access_token_' +
+                        scope.namespace, response.access_token,
+                        response.expires_in);
+                    scope.appQuery = scope.helpers.url.objToQuery({
+                        access_token: response.access_token
+                    });
 
-					if (scope.onReady !== null) {
-						scope.onReady();
-					}
+                    if (scope.onReady !== null) {
+                        scope.onReady();
+                    }
 
-				} else {
-					var url = window.loginWindow.document.URL;
-					var tabUrl = url.split('#');
-					var paramString = tabUrl[1];
+                } else {
+                    var url = window.loginWindow.document.URL;
+                    var tabUrl = url.split('#');
+                    var paramString = tabUrl[1];
 
-					if (typeof paramString !== 'undefined') {
-						var allParam = paramString.split("&");
-						for (var i = 0; i < allParam.length; i++) {
-							var oneParamKeyValue = allParam[i].split("=");
-							response[oneParamKeyValue[0]] = oneParamKeyValue[1];
-						}
+                    if (typeof paramString !== 'undefined') {
+                        var allParam = paramString.split("&");
+                        for (var i = 0; i < allParam.length; i++) {
+                            var oneParamKeyValue = allParam[i].split(
+                                "=");
+                            response[oneParamKeyValue[0]] =
+                                oneParamKeyValue[1];
+                        }
 
 
-						setTimeout(function() {
-							window.loginWindow.close();
-						}, 1500);
-					}
-				}
-			};
+                        setTimeout(function() {
+                            window.loginWindow.close();
+                        }, 1500);
+                    }
+                }
+            };
 
-			window.loginWindow = window.open(oauthUrl, 'Authenticate Permissions', false);
-			intervalId = window.setInterval(window.hashUpdate, 500);
+            window.loginWindow = window.open(oauthUrl,
+                'Authenticate Permissions', false);
+            intervalId = window.setInterval(window.hashUpdate, 500);
 
-		} else {
-			window.location.href = oauthUrl;
-		}
-	},
+        } else {
+            window.location.href = oauthUrl;
+        }
+    },
 
-	authenticateResponse: function(){
-		this.access_token = null;
-		this.expires_in = null;
-	}
+    authenticateResponse: function() {
+        this.access_token = null;
+        this.expires_in = null;
+    }
 };
 
     window.WBP = scope;
