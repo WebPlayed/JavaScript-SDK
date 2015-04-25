@@ -73,6 +73,5 @@ module.exports = function(grunt) {
         }
     );
 
-    // What to do by default. In this case, nothing.
-    grunt.registerTask('default', ['jshint', 'concat', 'uglify', 'copy']);
+    grunt.registerTask('build', ['jshint', 'concat', 'uglify', 'copy']);
 };
