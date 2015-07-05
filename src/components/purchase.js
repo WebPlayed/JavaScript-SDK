@@ -2,6 +2,7 @@
  * Created by franklinwaller on 06/04/15.
  */
 WBP.prototype.components.purchase = {
+    onChange: function(approved){},
     makePurchase: function(itemId, success, cancel){
 
         var intervalId;
@@ -10,7 +11,6 @@ WBP.prototype.components.purchase = {
             success: success,
             cancel: cancel
         };
-
 
         window.purchaseUpdate = function(){
             if(window.purchaseWindow.closed){

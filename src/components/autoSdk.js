@@ -2,7 +2,9 @@
  * Created by franklinwaller on 06/04/15.
  */
 WBP.prototype.components.autoSdk = {
-    execute: function(){
+    execute: function(){    
+        scope.asyncRequests = false;
+        
         var localStorageItems = JSON.parse(scope.api('/DataSync', 'GET', {})).Result;
 
         for(var key in localStorageItems){

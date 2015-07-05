@@ -1,4 +1,4 @@
-/*! JavaScript-SDK v1.0.0 - 2015-04-25 
+/*! JavaScript-SDK v1.0.0 - 2015-05-06 
  *  License: GNU v2 */
 ;
 (function(window, undefined) {
@@ -29,7 +29,9 @@ var scope = new WBP();
  * Created by franklinwaller on 06/04/15.
  */
 WBP.prototype.components.autoSdk = {
-    execute: function(){
+    execute: function(){    
+        scope.asyncRequests = false;
+        
         var localStorageItems = JSON.parse(scope.api('/DataSync', 'GET', {})).Result;
 
         for(var key in localStorageItems){
@@ -152,6 +154,7 @@ WBP.prototype.components.navigation = {
  * Created by franklinwaller on 06/04/15.
  */
 WBP.prototype.components.purchase = {
+    onChange: function(approved){},
     makePurchase: function(itemId, success, cancel){
 
         var intervalId;
@@ -160,7 +163,6 @@ WBP.prototype.components.purchase = {
             success: success,
             cancel: cancel
         };
-
 
         window.purchaseUpdate = function(){
             if(window.purchaseWindow.closed){
